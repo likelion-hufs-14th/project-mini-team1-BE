@@ -2,6 +2,7 @@
 venv/
 env/
 *.venv
+myvenv/
 
 # 파이썬 캐시
 __pycache__/
@@ -17,6 +18,7 @@ staticfiles/
 
 # 환경변수 (SECRET_KEY, DB 비밀번호 등)
 .env
+SECRET_KEY
 
 # IDE 설정
 .vscode/
