@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 class Participant(models.Model):
-    appointment_code = models.IntegerField() #appointment 모델 업데이트 후 외래키로 변경
+    appointment_code = models.CharField(max_length=5)
     name = models.CharField(max_length=50)
 
     def __str__(self):

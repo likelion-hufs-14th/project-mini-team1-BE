@@ -18,9 +18,12 @@ def origin_list(request, appointment_code):
         return Response(serializer.data)
     
     elif request.method == 'POST':
-        serializer = OriginCreateSerializer(data=request.data)
+        serializer = OriginCreateSerializer(
+            data=request.data,
+            context={'appointment_code':appointment_code}
+        )
         if serializer.is_valid():
-            origin = serializer.save(appointment_code=appointment_code)
+            origin = serializer.save()
             response_serializer = OriginResponseSerializer(origin)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
