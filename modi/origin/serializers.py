@@ -1,8 +1,24 @@
 from rest_framework import serializers
 from .models import Origin
 
-class OriginSerializer(serializers.ModelSerializer):
+#POST 요청 body용
+class OriginCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Origin
-        fields = ['appointment_code', 'name', 'origin', 'latitude', 'longitude', 'created_at']
-        read_only_fields = ['created_at']
+        fields = ['name', 'origin', 'latitude', 'longitude']
+
+#POST 응답 body용
+class OriginResponseSerializer(serializers.ModelSerializer):
+    origin_id = serializers.IntegerField(source='id')
+
+    class Meta:
+        model = Origin
+        fields = ['origin_id', 'name', 'origin']
+
+#GET 응답 body용
+'''
+class CurrentOriginsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Origin
+        fields = ['name', 'origin']
+'''
