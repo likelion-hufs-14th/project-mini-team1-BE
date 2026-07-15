@@ -1,0 +1,131 @@
+name: CD - Deploy via SSM
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:          # 수동 배포 테스트용
+
+permissions:
+    id-token: write             # OIDC AssumeRole 필수
+    contents: read
+
+env:
+    AWS_REGION: ap-northeast-2
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Configure AWS credentials (OIDC)
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: ap-northeast-2
+
+            - name: Send deploy command via SSM
+              id: send
+              env:
+                  ENV_FILE: ${{ secrets.ENV_FILE }}
+                  EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+              run: |
+                  set -euo pipefail
+
+                  # .env 내용을 base64로 인코딩 (JSON/셸 인젝션 방지, 개행 보존)
+                  ENV_B64=$(printf '%s' "$ENV_FILE" | base64 -w0)
+
+                  # EC2에서 실행될 원격 스크립트 (SSM은 root로 실행 -> sudo -u ubuntu 래핑)
+                  SCRIPT=$(cat <<'EOF'
+                  set -e
+                  sudo -u ubuntu bash -c '
+                  set -e
+                  export HOME=/home/ubuntu
+                  APP_DIR=/home/ubuntu/project-mini-team1-BE
+                  REPO=https://github.com/likelion-hufs-14th/project-mini-team1-BE.git
+                  ENV_B64="$1"
+
+                  # 코드 동기화: 없으면 clone, 있으면 최신화
+                  if [ ! -d "$APP_DIR/.git" ]; then
+                    git clone "$REPO" "$APP_DIR"
+                  fi
+                  cd "$APP_DIR"
+                  git fetch origin main
+                  git reset --hard origin/main
+
+                  # .env 생성 (manage.py 와 같은 위치 = modi/)
+                  cd modi
+                  echo "$ENV_B64" | base64 -d > .env
+
+                  # 의존성 설치 (venv 없으면 생성)
+                  [ -d venv ] || python3 -m venv venv
+                  ./venv/bin/pip install -r requirements.txt
+
+                  # DB 마이그레이션
+                  ./venv/bin/python manage.py migrate --noinput
+
+                  # 기존 gunicorn 종료 후 detached 재기동 (SSM 명령 종료해도 살아남도록 setsid)
+                  # 프로세스 이름으로 매칭 (-f 는 이 스크립트 자신의 커맨드라인과 매칭되어 자기 자신을 죽임)
+                  pkill gunicorn || true
+                  sleep 2
+                  nohup setsid ./venv/bin/gunicorn modi.wsgi:application --bind 0.0.0.0:8000 --workers 2 >> /home/ubuntu/gunicorn.log 2>&1 &
+
+                  # 기동 확인 (실패 시 non-zero -> SSM 명령 실패로 전파)
+                  sleep 3
+                  pgrep gunicorn
+                  ' _ "$ENV_B64"
+                  EOF
+                  )
+
+                  # commands JSON을 jq로 안전하게 구성 (base64 값만 주입, 시크릿 직접 보간 금지)
+                  PARAMS=$(jq -n --arg b64 "$ENV_B64" --arg script "$SCRIPT" \
+                    '{commands: [("ENV_B64=" + ($b64 | @sh)), $script]}')
+
+                  CID=$(aws ssm send-command \
+                    --instance-ids "$EC2_INSTANCE_ID" \
+                    --document-name "AWS-RunShellScript" \
+                    --comment "GitHub Actions deploy ${{ github.sha }}" \
+                    --parameters "$PARAMS" \
+                    --region "$AWS_REGION" \
+                    --query "Command.CommandId" --output text)
+
+                  echo "command_id=$CID" >> "$GITHUB_OUTPUT"
+                  echo "Sent SSM command: $CID"
+
+            - name: Wait for result & report
+              env:
+                  EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+                  COMMAND_ID: ${{ steps.send.outputs.command_id }}
+              run: |
+                  set -euo pipefail
+
+                  # aws ssm wait 는 약 100초 후 타임아웃되므로 (첫 배포는 clone + pip install 로 초과 가능)
+                  # 최대 10분간 직접 폴링. 명령 직후엔 invocation 이 아직 없을 수 있어 조회 실패는 Pending 취급.
+                  STATUS=Pending
+                  for i in $(seq 1 60); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "$EC2_INSTANCE_ID" \
+                      --region "$AWS_REGION" \
+                      --query "Status" --output text 2>/dev/null || echo Pending)
+                    case "$STATUS" in
+                      Success|Failed|Cancelled|TimedOut) break ;;
+                    esac
+                    sleep 10
+                  done
+
+                  echo "===== STDOUT ====="
+                  aws ssm get-command-invocation \
+                    --command-id "$COMMAND_ID" \
+                    --instance-id "$EC2_INSTANCE_ID" \
+                    --region "$AWS_REGION" \
+                    --query "StandardOutputContent" --output text
+
+                  echo "===== STDERR ====="
+                  aws ssm get-command-invocation \
+                    --command-id "$COMMAND_ID" \
+                    --instance-id "$EC2_INSTANCE_ID" \
+                    --region "$AWS_REGION" \
+                    --query "StandardErrorContent" --output text
+
+                  echo "===== STATUS: $STATUS ====="
+                  [ "$STATUS" = "Success" ]
