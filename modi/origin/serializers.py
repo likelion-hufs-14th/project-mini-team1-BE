@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Origin
+from .models import Origin, Participant
 
 #POST 요청 body용
 class OriginCreateSerializer(serializers.ModelSerializer):
@@ -16,9 +16,15 @@ class OriginResponseSerializer(serializers.ModelSerializer):
         fields = ['origin_id', 'name', 'origin']
 
 #GET 응답 body용
-'''
+
 class CurrentOriginsSerializer(serializers.ModelSerializer):
+    origin = serializers.SerializerMethodField()
+
     class Meta:
-        model = Origin
+        model = Participant
         fields = ['name', 'origin']
-'''
+    
+    def get_origin(self, obj):
+        if hasattr(obj, 'origin'):
+            return obj.origin.origin
+        return None
