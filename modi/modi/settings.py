@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'origin',
     'corsheaders',
     'drf_spectacular',
+    'appointment',
 ]
 
 REST_FRAMEWORK = {
