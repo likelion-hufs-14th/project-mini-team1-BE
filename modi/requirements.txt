@@ -1,14 +1,14 @@
-asgiref==3.11.1
+asgiref==3.12.1
 attrs==26.1.0
 Django==5.2.16
 django-cors-headers==4.9.0
 djangorestframework==3.17.1
-drf-spectacular==0.28.0
+drf-spectacular==0.30.0
 gunicorn==26.0.0
 inflection==0.5.1
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
-mysqlclient==2.2.7
+mysqlclient==2.2.8
 packaging==26.2
 python-decouple==3.8
 PyYAML==6.0.3
