@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'origin',
+    'corsheaders',
     'drf_spectacular',
 ]
 
@@ -63,6 +64,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+]
+
+CORS_ALLOWED_ORIGINS = [
+	'http://localhost:5173',
+    'https://project-mini-team1-fe.vercel.app',
+    'http://127.0.0.1:5173',
 ]
 
 ROOT_URLCONF = 'modi.urls'
