@@ -3,8 +3,7 @@ import uuid
 from django.db import models
 
 
-def generate_appointment_code():
-    """약속 별 랜덤 생성 코드 (예: a1b2c3)"""
+def generate_appointment_code(): #uuid로 약속 코드 랜덤 생성 
     return uuid.uuid4().hex[:6]
 
 
@@ -16,8 +15,8 @@ class Appointment(models.Model):
     title = models.CharField(max_length=100)  # 약속 제목
     date_time = models.DateTimeField()  # 약속 날짜 및 시간 (LocalDateTime)
 
-    appointment_code = models.CharField(  # 약속 별 랜덤 생성 코드
-        max_length=12,
+    appointment_code = models.CharField(  # 약속 별 랜덤 생성 코드 (6자리, 예: a1b2c3)
+        max_length=6,
         unique=True,
         default=generate_appointment_code,
         editable=False,
