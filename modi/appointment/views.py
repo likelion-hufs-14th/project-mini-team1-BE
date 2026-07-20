@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiTypes
 
 from .models import Appointment
 from .serializers import (
@@ -11,7 +12,12 @@ from .serializers import (
 )
 
 
-# POST /appointments  — 약속 생성
+@extend_schema(
+    methods=['POST'],
+    request=AppointmentCreateSerializer,
+    responses={201: AppointmentCreateResponseSerializer, 400: OpenApiTypes.OBJECT},
+    description='새로운 약속을 생성하고 약속 코드를 발급합니다.',
+)
 @api_view(['POST'])
 def appointment_create(request):
     serializer = AppointmentCreateSerializer(data=request.data)
@@ -22,7 +28,11 @@ def appointment_create(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# GET /appointments/<appointment_code>/status  — 약속 상태 확인
+@extend_schema(
+    methods=['GET'],
+    responses={200: AppointmentStatusSerializer, 404: OpenApiTypes.OBJECT},
+    description='약속 코드로 약속 상태를 조회합니다.',
+)
 @api_view(['GET'])
 def appointment_status(request, appointment_code):
     appointment = get_object_or_404(Appointment, appointment_code=appointment_code)

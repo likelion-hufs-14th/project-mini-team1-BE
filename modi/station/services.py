@@ -7,18 +7,18 @@ def haversine(lat1, lon1, lat2, lon2):
     phi2 = math.radians(lat2)
     delta_phi = math.radians(lat2 - lat1)
     delta_lambda = math.radians(lon2 - lon1)
-    
+
     a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
-    
+
     return R * c
 
 class StationRecommendationService:
     @staticmethod
-    def get_recommended_candidates(participants_coords, radius_km=3.0):
+    def get_recommended_candidates(participants_coords, radius_km=3.0, limit=5):
         """
-        매서드 활용으로 변경 
         - participants_coords: [{'lat': 37.x, 'lng': 127.x}, ...] 형태의 리스트
+        - limit: 반환할 최대 후보 개수 (가까운 순)
         """
         if not participants_coords:
             return []
@@ -43,6 +43,10 @@ class StationRecommendationService:
                     "longitude": float(station.longitude),
                     "distance_from_center": round(distance, 2)
                 })
+
+        # 가까운 순 정렬 후 상위 limit개만 반환
+        candidates.sort(key=lambda c: c["distance_from_center"])
+        candidates = candidates[:limit]
 
         return {
             "center": {"lat": center_lat, "lng": center_lng},
