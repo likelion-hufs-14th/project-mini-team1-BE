@@ -1,4 +1,3 @@
-# station/services.py
 import math
 from origin.models import Origin
 from .models import Station
