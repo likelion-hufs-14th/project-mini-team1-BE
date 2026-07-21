@@ -1,12 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .services import StationRecommendationService, fetch_all_travel_times, recommend_top_stations
+from .services import get_recommended_candidates, fetch_all_travel_times, recommend_top_stations
 from origin.models import Origin, Appointment
 from .models import RecommendedStation
-
-import requests
-
 
 class StationCandidateView(APIView):
     def get(self, request, appointment_code):
@@ -52,7 +49,7 @@ class StationCandidateView(APIView):
       ##### 서비스 레이어 호출 #####
 
         #참여자들의 위경도 평균을 기준으로 후보역을 추출한다 (반경 3km 이내)
-        candidates = StationRecommendationService.get_recommended_candidates(participants_coords)
+        candidates = get_recommended_candidates(participants_coords)
 
         #각 후보역에 대해, 참여자들의 대중교통 이동시간을 추출한다
         travel_times = fetch_all_travel_times(candidates["candidates"], participants_coords)
@@ -72,5 +69,5 @@ class StationCandidateView(APIView):
                 is_recommended=item["is_recommended"],
                 participants=item["participants"],
             )
-            
+
         return Response(result, status=status.HTTP_200_OK)
