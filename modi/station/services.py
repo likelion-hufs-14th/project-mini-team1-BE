@@ -1,5 +1,8 @@
 import math
+from django.db.models import Avg
+
 from .models import Station
+from origin.models import Origin
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -16,10 +19,7 @@ def haversine(lat1, lon1, lat2, lon2):
 class StationRecommendationService:
     @staticmethod
     def get_recommended_candidates(participants_coords, radius_km=3.0, limit=5):
-        """
-        - participants_coords: [{'lat': 37.x, 'lng': 127.x}, ...] 형태의 리스트
-        - limit: 반환할 최대 후보 개수 (가까운 순)
-        """
+       #출발지 중간 지점 -> AVG로 한번에 계산 
         if not participants_coords:
             return []
 
@@ -33,22 +33,38 @@ class StationRecommendationService:
         all_stations = Station.objects.all()
         candidates = []
 
-        for station in all_stations:
+        result = Origin.objects.filter(appointment_code=appointment_code).aggregate(
+            center_lat=Avg('latitude'),
+            center_lng=Avg('longitude'),
+        )
+        if result['center_lat'] is None:
+            return None
+        return {
+            "lat": float(result['center_lat']),
+            "lng": float(result['center_lng']),
+        } 
+    
+    @staticmethod
+    def get_station_candidates(center_lat, center_lng, radius_km = 3.0, limit =5):
+        lat_delta = radius_km / 111.0
+        lng_delta = radius_km / (111.0 * max(math.cos(math.radians(center_lat)), 0.01))
+        nearby_stations = Station.objects.filter(
+            latitude__range=(center_lat - lat_delta, center_lat + lat_delta),
+            longitude__range=(center_lng - lng_delta, center_lng + lng_delta),
+        )
+
+        candidates = []
+        for station in nearby_stations:
             distance = haversine(center_lat, center_lng, float(station.latitude), float(station.longitude))
-            if distance <= radius_km:
+            if distance <= radius_km:  # bounding box는 사각형이라 모서리 오차 보정용 재확인
                 candidates.append({
                     "id": station.id,
                     "name": station.name,
                     "latitude": float(station.latitude),
                     "longitude": float(station.longitude),
-                    "distance_from_center": round(distance, 2)
+                    "distance_from_center": round(distance, 2),
                 })
 
-        # 가까운 순 정렬 후 상위 limit개만 반환
         candidates.sort(key=lambda c: c["distance_from_center"])
-        candidates = candidates[:limit]
-
-        return {
-            "center": {"lat": center_lat, "lng": center_lng},
-            "candidates": candidates
-        }
+        return candidates[:limit]
+        
