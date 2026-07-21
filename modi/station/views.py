@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from .services import StationRecommendationService, fetch_all_travel_times, recommend_top_stations
 from origin.models import Origin
+import requests
+
 
 class StationCandidateView(APIView):
-    def post(self, request):
-        appointment_code = request.data.get("appointment_code")
+    def post(self, request, appointment_code):
         origins = Origin.objects.filter(appointment_code=appointment_code)
         participants_coords = [
             {"name": origin.name, "lat": float(origin.latitude), "lng": float(origin.longitude)}
