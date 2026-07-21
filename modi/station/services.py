@@ -1,10 +1,7 @@
 import math
 from .models import Station
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-ODSAY_API_KEY = os.getenv("ODSAY_API_KEY")
+from django.conf import settings
+import requests
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -17,6 +14,35 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
     
     return R * c
+
+def get_travel_time(origin: tuple, destination: tuple) -> int:
+    url = "https://api.odsay.com/v1/api/searchPubTransPathT"
+    params = {
+        "apiKey": settings.ODSAY_API_KEY,
+        "SX": origin[1], "SY": origin[0],
+        "EX": destination[1], "EY": destination[0],
+    }
+    try:
+        res = requests.get(url, params=params, timeout=3)
+        res.raise_for_status()
+        data=res.json()
+        return data["result"]["path"][0]["info"]["totalTime"]
+    except (requests.RequestException, KeyError, IndexError):
+        return None
+
+def fetch_all_travel_times(stations: list, participants: list) -> dict:
+    """
+    stations: [{"id": ..., "latitude": ..., "longitude": ...}, ...] 형태의 dict 리스트
+    """
+    results = {}
+    for station in stations:
+        results[station["id"]]={}
+        destination=(float(station["latitude"]), float(station["longitude"]))
+        for user in participants:
+            origin = (user["lat"], user["lng"])
+            travel_time = get_travel_time(origin, destination)
+            results[station["id"]][user["user_id"]] = travel_time
+    return results
 
 class StationRecommendationService:
     @staticmethod
