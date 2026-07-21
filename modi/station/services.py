@@ -99,49 +99,51 @@ def recommend_top_stations(candidates: list, travel_times: dict, top_n: int = 3)
     return recommendations
 
 
-class StationRecommendationService:
-    @staticmethod
-    def get_recommended_candidates(participants_coords, radius_km=3.0):
-        if not participants_coords:
-            return {"center": {"lat": 0.0, "lng": 0.0}, "candidates": []}
+def get_central_point(participants_coords):
+    if not participants_coords:
+        return (0.0, 0.0)
 
-        # 1. 위경도 평균 (중심점)
-        total_lat = sum(coord['lat'] for coord in participants_coords)
-        total_lng = sum(coord['lng'] for coord in participants_coords)
-        center_lat = total_lat / len(participants_coords)
-        center_lng = total_lng / len(participants_coords)
+    total_lat = sum(coord['lat'] for coord in participants_coords)
+    total_lng = sum(coord['lng'] for coord in participants_coords)
+    center_lat = total_lat / len(participants_coords)
+    center_lng = total_lng / len(participants_coords)
 
-        # 2. 지하철 후보 추출 및 역 이름 기준 중복 제거/노선 통합
-        all_stations = Station.objects.all()
-        candidates_dict = {}
+    result = (center_lat, center_lng)
 
-        for station in all_stations:
-            distance = haversine(center_lat, center_lng, float(station.latitude), float(station.longitude))
-            if distance <= radius_km:
-                station_name = station.name
-                # station.line이 "2호선,신분당선" 또는 "2호선" 일 수 있으므로 처리
-                raw_lines = [l.strip() for l in station.line.split(",") if l.strip()]
+    return result
 
-                if station_name not in candidates_dict:
-                    candidates_dict[station_name] = {
-                        "id": station.id,
-                        "name": station_name,
-                        "lines": raw_lines,
-                        "latitude": float(station.latitude),
-                        "longitude": float(station.longitude),
-                        "distance_from_center": round(distance, 2)
-                    }
-                else:
-                    # 이미 존재하는 역인 경우 lines 목록에 새 노선들 병합 (중복 제외)
-                    existing_lines = candidates_dict[station_name]["lines"]
-                    for l in raw_lines:
-                        if l not in existing_lines:
-                            existing_lines.append(l)
+def get_recommended_candidates(participants_coords, radius_km=3.0):
+    center_coord = get_central_point(participants_coords)
+    center_lat, center_lng = center_coord[0], center_coord[1]
+    all_stations = Station.objects.all()
+    candidates_dict = {}
+
+    for station in all_stations:
+        distance = haversine(center_lat, center_lng, float(station.latitude), float(station.longitude))
+
+        if distance <= radius_km:
+            station_name = station.name
+            raw_lines= [l.strip() for l in station.line.split(",") if l.strip()]
+            if station_name not in candidates_dict:
+                candidates_dict[station_name] = {
+                    "id": station.id,
+                    "name": station_name,
+                    "lines": raw_lines,
+                    "latitude": float(station.latitude),
+                    "longitude": float(station.longitude),
+                    "distance_from_center": round(distance, 2)
+                }
+            else:
+                # 이미 존재하는 역인 경우 lines 목록에 새 노선들 병합 (중복 제외)
+                existing_lines = candidates_dict[station_name]["lines"]
+                for l in raw_lines:
+                    if l not in existing_lines:
+                        existing_lines.append(l)
 
         # dict values -> list 변환
-        candidates = list(candidates_dict.values())
+    candidates = list(candidates_dict.values())
 
-        return {
-            "center": {"lat": center_lat, "lng": center_lng},
-            "candidates": candidates
-        }
+    return {
+        "center": {"lat": center_lat, "lng": center_lng},
+        "candidates": candidates
+    }
