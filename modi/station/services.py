@@ -15,11 +15,11 @@ def haversine(lat1, lon1, lat2, lon2):
     
     return R * c
 
-def get_travel_time(origin: tuple, destination: tuple) -> int:
+def get_travel_time(origin_coords: tuple, destination: tuple) -> int:
     url = "https://api.odsay.com/v1/api/searchPubTransPathT"
     params = {
         "apiKey": settings.ODSAY_API_KEY,
-        "SX": origin[1], "SY": origin[0],
+        "SX": origin_coords[1], "SY": origin_coords[0],
         "EX": destination[1], "EY": destination[0],
     }
     try:
@@ -30,18 +30,18 @@ def get_travel_time(origin: tuple, destination: tuple) -> int:
     except (requests.RequestException, KeyError, IndexError):
         return None
 
-def fetch_all_travel_times(stations: list, participants: list) -> dict:
+def fetch_all_travel_times(candidates: list, origins: list) -> dict:
     """
-    stations: [{"id": ..., "latitude": ..., "longitude": ...}, ...] 형태의 dict 리스트
+    candidates: [{"id": ..., "latitude": ..., "longitude": ...}, ...] 형태의 dict 리스트
     """
     results = {}
-    for station in stations:
+    for station in candidates:
         results[station["id"]]={}
         destination=(float(station["latitude"]), float(station["longitude"]))
-        for user in participants:
-            origin = (user["lat"], user["lng"])
-            travel_time = get_travel_time(origin, destination)
-            results[station["id"]][user["user_id"]] = travel_time
+        for origin in origins:
+            origin_coords = (origin["lat"], origin["lng"])
+            travel_time = get_travel_time(origin_coords, destination)
+            results[station["name"]][origin["name"]] = travel_time
     return results
 
 class StationRecommendationService:
