@@ -151,6 +151,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+ODSAY_API_KEY="/A4oSsOdNvZlNpw4iYxt3WyqMYHQ0xIy0F6qhsOvGqg"
 
 try:
     from .local_settings import *

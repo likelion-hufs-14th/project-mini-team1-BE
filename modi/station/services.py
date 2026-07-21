@@ -70,7 +70,7 @@ def recommend_top_stations(candidates: list, travel_times: dict, top_n: int=3) -
         station_times = travel_times.get(station_name, {})
         stats = calculate_station_stats(station_times) #각 역별로 참여자의 이동시간 통계를 냄
 
-        if stats in None:
+        if stats is None:
             continue
 
         participants_info = [
@@ -80,7 +80,7 @@ def recommend_top_stations(candidates: list, travel_times: dict, top_n: int=3) -
         ]
 
         # line 필드가 "2호선,경의중앙선,공항철도" 형태라고 가정 → 배열로 변환
-        lines = [line.strip() for line in station["line"].split(", ")]
+        lines = [line.strip() for line in station["line"].split(",")]
 
         station_results.append({
             "station": station["name"],
@@ -135,6 +135,7 @@ class StationRecommendationService:
                 candidates.append({
                     "id": station.id,
                     "name": station.name,
+                    "line": station.line,
                     "latitude": float(station.latitude),
                     "longitude": float(station.longitude),
                     "distance_from_center": round(distance, 2)
