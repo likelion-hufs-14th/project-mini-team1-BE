@@ -1,5 +1,10 @@
 import math
 from .models import Station
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+ODSAY_API_KEY = os.getenv("ODSAY_API_KEY")
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
