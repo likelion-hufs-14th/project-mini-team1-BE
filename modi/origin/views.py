@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import OriginCreateSerializer, OriginResponseSerializer, CurrentOriginsSerializer
-from .models import Origin
+from .models import Origin, Appointment
 # Create your views here.
 
 @api_view(['GET', 'POST'])
@@ -14,6 +14,7 @@ def origin_list(request, appointment_code):
         return Response(serializer.data)
     
     elif request.method == 'POST':
+        appointment = Appointment.objects.get_object_or_404(appointment_code=appointment_code)
         serializer = OriginCreateSerializer(data=request.data)
         if serializer.is_valid():
             origin = serializer.save(appointment_code=appointment_code)
