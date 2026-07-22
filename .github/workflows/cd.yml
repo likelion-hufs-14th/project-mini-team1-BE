@@ -67,7 +67,7 @@ jobs:
                   # 프로세스 이름으로 매칭 (-f 는 이 스크립트 자신의 커맨드라인과 매칭되어 자기 자신을 죽임)
                   pkill gunicorn || true
                   sleep 2
-                  nohup setsid ./venv/bin/gunicorn modi.wsgi:application --bind 0.0.0.0:8000 --workers 2 >> /home/ubuntu/gunicorn.log 2>&1 &
+                  nohup setsid ./venv/bin/gunicorn modi.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 >> /home/ubuntu/gunicorn.log 2>&1 &
 
                   # 기동 확인 (실패 시 non-zero -> SSM 명령 실패로 전파)
                   sleep 3
