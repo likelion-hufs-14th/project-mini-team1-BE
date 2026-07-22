@@ -1,6 +1,7 @@
 import math, requests, statistics
 from .models import Station
 from django.conf import settings
+from decimal import Decimal
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -113,10 +114,31 @@ def get_central_point(participants_coords):
 def get_recommended_candidates(participants_coords, radius_km=3.0):
     center_coord = get_central_point(participants_coords)
     center_lat, center_lng = center_coord[0], center_coord[1]
-    all_stations = Station.objects.all()
+    
+    # 1. 1도당 대략적인 거리 
+    #   - 3km에 해당하는 위경도 변화량 계산
+    lat_delta = radius_km / 111.0
+    lng_delta = radius_km / (111.0 * math.cos(math.radians(center_lat)))
+
+    # 2. 사각형 경계면 계산
+    min_lat = Decimal(str(center_lat - lat_delta))
+    max_lat = Decimal(str(center_lat + lat_delta))
+    min_lng = Decimal(str(center_lng - lng_delta))
+    max_lng = Decimal(str(center_lng + lng_delta))
+
+    # 3. 1차 필터링
+    #   - DB 수준에서 사각형 범위 내의 데이터만 조회
+
+    stations_dict = Station.objects.filter(
+        latitude__gte=min_lat,
+        latitude__lte=max_lat,
+        longitude__gte=min_lng,
+        longitude__lte=max_lng
+    )
+
     candidates_dict = {}
 
-    for station in all_stations:
+    for station in stations_dict:
         distance = haversine(center_lat, center_lng, float(station.latitude), float(station.longitude))
 
         if distance <= radius_km:
