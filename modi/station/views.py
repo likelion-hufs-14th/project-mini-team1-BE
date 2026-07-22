@@ -44,8 +44,14 @@ class StationCandidateView(APIView):
         logger.info(f"[POST] 추천 역 계산 및 저장 요청 시작 - 약속 코드: {appointment_code}")
         start_time = time.time()
         appointment = get_object_or_404(Appointment, appointment_code=appointment_code)
-        origins = Origin.objects.filter(appointment=appointment)
 
+        if appointment.status == Appointment.Status.COMPLETED:
+            logger.warning(f"[POST] 이미 추천이 완료된 약속입니다 - 약속 코드: {appointment_code}")
+            return Response(
+                {"error": "이미 추천이 완료된 약속입니다."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        
         participants_coords = [
             {"name": origin.name, "lat": float(origin.latitude), "lng": float(origin.longitude)}
             for origin in origins
@@ -73,8 +79,6 @@ class StationCandidateView(APIView):
 
         # 기존 데이터 삭제 + result(계산 결과)를 새 객체로 저장
         with transaction.atomic():
-            RecommendedStation.objects.filter(appointment=appointment).delete()
-
             new_stations = [
                 RecommendedStation(
                     appointment=appointment,
