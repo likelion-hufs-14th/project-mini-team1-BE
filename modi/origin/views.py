@@ -11,7 +11,8 @@ from django.shortcuts import get_object_or_404
 def origin_list(request, appointment_code):
 
     if request.method == 'GET':
-        origins = Origin.objects.filter(appointment_code=appointment_code)
+        appointment = get_object_or_404(Appointment, appointment_code=appointment_code)
+        origins = Origin.objects.filter(appointment=appointment)
         serializer = CurrentOriginsSerializer(origins, many=True)
         return Response(serializer.data)
     
