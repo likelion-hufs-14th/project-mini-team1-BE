@@ -29,6 +29,15 @@ def get_travel_time(origin_coords: tuple, destination: tuple) -> int | None:
         res = requests.get(url, params=params, timeout=3)
         res.raise_for_status()
         data = res.json()
+        if "error" in data:
+            error_code = data["error"].get("code")
+            # -98: 출발지/도착지가 700m 이내 -> 실패가 아니라 도보권으로 간주
+            if error_code == "-98":
+                logger.info(f"[get_travel_time] 출발지/도착지 근접(700m 이내) - origin: {origin_coords}, dest: {destination}")
+                return 0
+            logger.error(f"[get_travel_time] ODsay 에러 응답 - origin: {origin_coords}, dest: {destination}, "
+                         f"에러코드: {error_code}, 메시지: {data['error'].get('msg')}")
+            return None
         return data["result"]["path"][0]["info"]["totalTime"]
     except requests.RequestException as e:
         logger.error(f"[get_travel_time] 요청 실패 - origin: {origin_coords}, dest: {destination}, 에러: {e}")
