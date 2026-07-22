@@ -100,8 +100,6 @@ def recommend_top_stations(candidates: list, travel_times: dict, top_n: int = 3)
 
 
 def get_central_point(participants_coords):
-    if not participants_coords:
-        return (0.0, 0.0)
 
     total_lat = sum(coord['lat'] for coord in participants_coords)
     total_lng = sum(coord['lng'] for coord in participants_coords)
