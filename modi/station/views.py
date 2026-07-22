@@ -88,6 +88,11 @@ class StationCandidateView(APIView):
                 for item in result
             ]
             created_stations = RecommendedStation.objects.bulk_create(new_stations)
+            logger.info(f"[POST] bulk_create 직후 개수: {RecommendedStation.objects.filter(appointment=appointment).count()}")
+
+            appointment.status = Appointment.Status.COMPLETED
+            appointment.save(update_fields=["status"])
+
 
         created_stations_sorted = sorted(created_stations, key=lambda x: x.place_num)
         response_data = [serialize_station(item) for item in created_stations_sorted]
