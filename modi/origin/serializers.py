@@ -5,7 +5,8 @@ from .models import Origin
 class OriginCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Origin
-        fields = ['name', 'origin', 'latitude', 'longitude']
+        fields = ['appointment', 'name', 'origin', 'latitude', 'longitude']
+        read_only_fields = ['appointment'] 
 
 #POST 요청의 응답 body용
 class OriginResponseSerializer(serializers.ModelSerializer):

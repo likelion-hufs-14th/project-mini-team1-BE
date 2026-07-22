@@ -4,9 +4,8 @@ from appointment.models import Appointment
 # Create your models here.
 
 class Origin(models.Model):
-    appointment_code = models.ForeignKey(
+    appointment = models.ForeignKey(
         Appointment,
-        to_field="appointment_code",
         on_delete=models.CASCADE,
         related_name="origins", # appointment.origins.all()로 역참조 가능
     )

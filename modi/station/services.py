@@ -2,6 +2,9 @@ import math, requests, statistics
 from .models import Station
 from django.conf import settings
 from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371.0
@@ -27,13 +30,19 @@ def get_travel_time(origin_coords: tuple, destination: tuple) -> int | None:
         res.raise_for_status()
         data = res.json()
         return data["result"]["path"][0]["info"]["totalTime"]
-    except (requests.RequestException, KeyError, IndexError):
+    except requests.RequestException as e:
+        logger.error(f"[get_travel_time] 요청 실패 - origin: {origin_coords}, dest: {destination}, 에러: {e}")
+        return None
+    except (KeyError, IndexError) as e:
+        logger.error(f"[get_travel_time] 응답 파싱 실패 - origin: {origin_coords}, dest: {destination}, "
+                     f"응답 데이터: {data}, 에러: {e}")
         return None
 
 def fetch_all_travel_times(candidates: list, origins: list) -> dict:
     """
     candidates: [{"name": ..., "latitude": ..., "longitude": ...}, ...] 형태의 dict 리스트
     """
+    logger.info(f"[SERVICE] fetch_all_travel_times 시작 - 후보역 {len(candidates)}개, 참여자 {len(origins)}명")
     results = {}
     for station in candidates:
         station_name = station["name"]
@@ -43,6 +52,8 @@ def fetch_all_travel_times(candidates: list, origins: list) -> dict:
             origin_coords = (origin["lat"], origin["lng"])
             travel_time = get_travel_time(origin_coords, destination)
             results[station_name][origin["name"]] = travel_time
+            logger.debug(f"[SERVICE] {station_name} <- {origin['name']} 이동시간: {travel_time}분")
+    logger.info(f"[SERVICE] fetch_all_travel_times 완료 - 결과: {results}")
     return results
 
 def calculate_station_stats(station_travel_times: dict) -> dict | None:
