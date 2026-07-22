@@ -44,6 +44,15 @@ def origin_list(request, appointment_code):
         appointment = get_object_or_404(Appointment, appointment_code=appointment_code)
         serializer = OriginCreateSerializer(data=request.data)
         if serializer.is_valid():
+            name = serializer.validated_data.get('name')
+
+            # 같은 appointment 내에서 이름 중복 체크
+            if Origin.objects.filter(appointment=appointment, name=name).exists():
+                return Response(
+                    {"detail": f"'{name}' 이름이 이미 존재합니다."},
+                    status=status.HTTP_409_CONFLICT
+                )
+
             origin = serializer.save(appointment=appointment)
             response_serializer = OriginResponseSerializer(origin)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
