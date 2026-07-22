@@ -122,7 +122,7 @@ def get_central_point(participants_coords):
 
     return result
 
-def get_recommended_candidates(participants_coords, radius_km=3.0):
+def get_recommended_candidates(participants_coords, radius_km=1.5):
     center_coord = get_central_point(participants_coords)
     center_lat, center_lng = center_coord[0], center_coord[1]
     
